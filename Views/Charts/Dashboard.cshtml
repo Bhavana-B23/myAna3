@@ -1,0 +1,209 @@
+﻿@model DataVizNavigator1.Models.ChartViewModel
+
+
+@{
+    ViewData["Title"] = "Chart Dashboard";
+}
+
+<h1>Chart Dashboard</h1>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Select Data for Chart Visualization</h5>
+            </div>
+            <div class="card-body">
+                <form id="chartForm">
+                    <div class="form-group">
+                        <label for="MappingId">Dataset</label>
+                        <select id="MappingId" name="MappingId" class="form-control">
+                            <option value="">-- Select Dataset --</option>
+                            @foreach (var mapping in Model.AvailableMappings)
+                            {
+                                <option value="@mapping.Id">@mapping.Name</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ChartType">Chart Type</label>
+                        <select id="ChartType" name="ChartType" class="form-control">
+                            <option value="bar">Bar Chart</option>
+                            <option value="line">Line Chart</option>
+                            <option value="pie">Pie Chart</option>
+                            <option value="scatter">Scatter Plot</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="XAxisColumn">X-Axis Column</label>
+                        <select id="XAxisColumn" name="XAxisColumn" class="form-control"></select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="YAxisColumn">Y-Axis Column</label>
+                        <select id="YAxisColumn" name="YAxisColumn" class="form-control"></select>
+                    </div>
+
+                    <div class="form-group mt-3">
+                        <button type="button" id="generateChart" class="btn btn-primary">Generate Chart</button>
+                    </div>
+
+                    <div class="form-group mt-3" id="saveChartSection" style="display:none;">
+                        <label for="Name">Chart Name</label>
+                        <input type="text" id="Name" name="Name" class="form-control" />
+                        <button type="button" id="saveChart" class="btn btn-success mt-2">Save Chart</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Chart Visualization</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chartCanvas"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let chart = null;
+
+        $(document).ready(function() {
+            // Populate columns when a dataset is selected
+            $('#MappingId').change(function() {
+                const mappingId = $(this).val();
+                if (mappingId) {
+                    $.ajax({
+                        url: '@Url.Action("GetColumns", "Charts")/' + mappingId,
+                        type: 'GET',
+                        success: function(data) {
+                            populateColumnDropdowns(data);
+                        },
+                        error: function() {
+                            alert('Error fetching columns');
+                        }
+                    });
+                } else {
+                    clearColumnDropdowns();
+                }
+            });
+
+            // Generate chart button click
+            $('#generateChart').click(function() {
+                const formData = {
+                    MappingId: $('#MappingId').val(),
+                    ChartType: $('#ChartType').val(),
+                    XAxisColumn: $('#XAxisColumn').val(),
+                    YAxisColumn: $('#YAxisColumn').val()
+                };
+
+                if (!formData.MappingId || !formData.XAxisColumn || !formData.YAxisColumn) {
+                    alert('Please select all required fields');
+                    return;
+                }
+
+                $.ajax({
+                    url: '@Url.Action("GenerateChart", "Charts")',
+                    type: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        if (response.success) {
+                            renderChart(response.chartData, formData.ChartType);
+                            $('#saveChartSection').show();
+                        } else {
+                            alert('Error generating chart: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('Error generating chart');
+                    }
+                });
+            });
+
+            // Save chart button click
+            $('#saveChart').click(function() {
+                const chartName = $('#Name').val();
+                if (!chartName) {
+                    alert('Please enter a chart name');
+                    return;
+                }
+
+                const formData = {
+                    Name: chartName,
+                    MappingId: $('#MappingId').val(),
+                    ChartType: $('#ChartType').val(),
+                    XAxisColumn: $('#XAxisColumn').val(),
+                    YAxisColumn: $('#YAxisColumn').val()
+                };
+
+                $.ajax({
+                    url: '@Url.Action("SaveChart", "Charts")',
+                    type: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        if (response.success) {
+                            alert('Chart saved successfully!');
+                        } else {
+                            alert('Error saving chart: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('Error saving chart');
+                    }
+                });
+            });
+        });
+
+        function populateColumnDropdowns(columns) {
+            const xAxisSelect = $('#XAxisColumn');
+            const yAxisSelect = $('#YAxisColumn');
+
+            xAxisSelect.empty();
+            yAxisSelect.empty();
+
+            xAxisSelect.append('<option value="">-- Select X-Axis Column --</option>');
+            yAxisSelect.append('<option value="">-- Select Y-Axis Column --</option>');
+
+            columns.forEach(function(column) {
+                xAxisSelect.append(`<option value="${column}">${column}</option>`);
+                yAxisSelect.append(`<option value="${column}">${column}</option>`);
+            });
+        }
+
+        function clearColumnDropdowns() {
+            $('#XAxisColumn').empty().append('<option value="">-- Select X-Axis Column --</option>');
+            $('#YAxisColumn').empty().append('<option value="">-- Select Y-Axis Column --</option>');
+        }
+
+        function renderChart(chartData, chartType) {
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            const data = JSON.parse(chartData);
+
+            chart = new Chart(ctx, {
+                type: chartType,
+                data: data,
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+} 

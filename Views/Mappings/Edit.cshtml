@@ -1,0 +1,265 @@
+﻿@model DataVizNavigator1.Models.MappingViewModel
+
+@{
+    ViewData["Title"] = "Edit Mapping";
+}
+
+<h1>Edit Mapping</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="text-danger"></div>
+            <input type="hidden" asp-for="Id" />
+
+            <div class="form-group mb-3">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Description" class="control-label"></label>
+                <textarea asp-for="Description" class="form-control"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="DataSourceType" class="control-label"></label>
+                <select asp-for="DataSourceType" class="form-control" id="dataSourceType">
+                    <option value="">-- Select Data Source Type --</option>
+                    <option value="SQL">SQL Database</option>
+                    <option value="JSON">JSON Data</option>
+                </select>
+                <span asp-validation-for="DataSourceType" class="text-danger"></span>
+            </div>
+
+            <div id="sqlSection" style="display:none;">
+                <div class="form-group mb-3">
+                    <label asp-for="ConnectionString" class="control-label"></label>
+                    <input asp-for="ConnectionString" class="form-control" id="connectionString" />
+                    <span class="text-muted">Example: Server=localhost;Database=YourDB;Trusted_Connection=True;</span>
+                    <span asp-validation-for="ConnectionString" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="SqlQuery" class="control-label"></label>
+                    <textarea asp-for="SqlQuery" class="form-control" rows="5" id="sqlQuery"></textarea>
+                    <span class="text-muted">Example: SELECT * FROM YourTable WHERE Column = 'Value'</span>
+                    <span asp-validation-for="SqlQuery" class="text-danger"></span>
+                </div>
+
+                <!-- Hidden TableData field -->
+                <input type="hidden" asp-for="TableData" id="hiddenTableData" />
+
+                <!-- Test and Save Result Buttons -->
+                <button type="button" class="btn btn-warning mb-3" id="testResultBtn">Test SQL Query</button>
+                <button type="button" class="btn btn-info mb-3 ml-2" id="saveTestDataBtn" style="display:none;">Save Test Data</button>
+
+                <div id="testResult" style="margin-top: 10px;"></div>
+                <div id="saveStatus" style="margin-top: 10px;"></div>
+            </div>
+
+            <div id="jsonSection" style="display:none;">
+                <div class="form-group mb-3">
+                    <label asp-for="TableData" class="control-label"></label>
+                    <textarea asp-for="TableData" class="form-control" rows="10" id="jsonTableData"></textarea>
+                    <span class="text-muted">Provide JSON data in array format: [{"key": "value"}, {"key": "value"}]</span>
+                    <span asp-validation-for="TableData" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-group mt-4 mb-3">
+                <input type="submit" value="Save Changes" class="btn btn-primary" id="saveButton" />
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-info ml-2">View Details</a>
+                <a asp-action="Index" class="btn btn-secondary ml-2">Back to List</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function () {
+            // Store the test result JSON data
+            let testResultJsonData = '@Html.Raw(Json.Serialize(Model.TableData))';
+
+            // Show/hide sections based on initial data source type value
+            var initialDataSourceType = $('#dataSourceType').val();
+            toggleSections(initialDataSourceType);
+
+            // Show/hide sections based on data source type change
+            $('#dataSourceType').change(function () {
+                var selectedValue = $(this).val();
+                toggleSections(selectedValue);
+            });
+
+            function toggleSections(selectedValue) {
+                if (selectedValue === 'SQL') {
+                    $('#sqlSection').show();
+                    $('#jsonSection').hide();
+                } else if (selectedValue === 'JSON') {
+                    $('#sqlSection').hide();
+                    $('#jsonSection').show();
+                } else {
+                    $('#sqlSection').hide();
+                    $('#jsonSection').hide();
+                }
+            }
+
+            // Handle Test Result button click
+            $('#testResultBtn').click(function () {
+                var connectionString = $('#connectionString').val();
+                var sqlQuery = $('#sqlQuery').val();
+
+                if (!connectionString || !sqlQuery) {
+                    $('#testResult').html('<div class="alert alert-danger">Connection string and SQL query are both required.</div>');
+                    $('#saveTestDataBtn').hide();
+                    return;
+                }
+
+                $('#testResult').html('<div class="alert alert-info">Testing query... Please wait.</div>');
+                $('#saveTestDataBtn').hide();
+
+                // Make an AJAX request to the TestResult action
+                $.ajax({
+                    url: '@Url.Action("TestResult", "Mappings")',
+                    type: 'POST',
+                    data: {
+                        connectionString: connectionString,
+                        sqlQuery: sqlQuery
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            if (response.data && response.data.length > 0) {
+                                // Store the JSON data for later use
+                                testResultJsonData = response.jsonData;
+
+                                // Update hidden field
+                                $('#hiddenTableData').val(testResultJsonData);
+
+                                // Show save button
+                                $('#saveTestDataBtn').show();
+
+                                var resultHtml = '<div class="alert alert-success">Query executed successfully! Results:</div>';
+                                resultHtml += '<div class="table-responsive"><table class="table table-bordered table-striped"><thead><tr>';
+
+                                // Create table headers
+                                for (var key in response.data[0]) {
+                                    resultHtml += '<th>' + key + '</th>';
+                                }
+                                resultHtml += '</tr></thead><tbody>';
+
+                                // Create table rows
+                                response.data.forEach(function (row) {
+                                    resultHtml += '<tr>';
+                                    for (var key in row) {
+                                        resultHtml += '<td>' + (row[key] !== null ? row[key] : 'NULL') + '</td>';
+                                    }
+                                    resultHtml += '</tr>';
+                                });
+                                resultHtml += '</tbody></table></div>';
+
+                                $('#testResult').html(resultHtml);
+                            } else {
+                                $('#testResult').html('<div class="alert alert-warning">Query executed successfully but returned no results.</div>');
+                                $('#saveTestDataBtn').hide();
+                            }
+                        } else {
+                            $('#testResult').html('<div class="alert alert-danger">Error: ' + response.message + '</div>');
+                            $('#saveTestDataBtn').hide();
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        $('#testResult').html('<div class="alert alert-danger">An error occurred while testing the query: ' + error + '</div>');
+                        $('#saveTestDataBtn').hide();
+                    }
+                });
+            });
+
+            // Handle the Save Test Data button click
+            $('#saveTestDataBtn').click(function() {
+                var mappingId = @Model.Id;
+                var jsonData = testResultJsonData;
+
+                if (!jsonData) {
+                    $('#saveStatus').html('<div class="alert alert-danger">No test data available to save.</div>');
+                    return;
+                }
+
+                $('#saveStatus').html('<div class="alert alert-info">Saving test data... Please wait.</div>');
+
+                $.ajax({
+                    url: '@Url.Action("SaveTestData", "Mappings")',
+                    type: 'POST',
+                    data: {
+                        id: mappingId,
+                        jsonData: jsonData
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#saveStatus').html('<div class="alert alert-success">' + response.message + '</div>');
+                            $('#hiddenTableData').val(jsonData);
+                        } else {
+                            $('#saveStatus').html('<div class="alert alert-danger">Error: ' + response.message + '</div>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        $('#saveStatus').html('<div class="alert alert-danger">An error occurred while saving data: ' + error + '</div>');
+                    }
+                });
+            });
+
+            // Add form submission handler to ensure form data is correctly set
+            $('form').submit(function(e) {
+                var dataSourceType = $('#dataSourceType').val();
+
+                if (dataSourceType === 'SQL') {
+                    // If we have test results, use them
+                    if (testResultJsonData && testResultJsonData !== '[]') {
+                        $('#hiddenTableData').val(testResultJsonData);
+                    }
+                }
+
+                return true; // Continue with form submission
+            });
+
+            // Display existing data when page loads if SQL data source
+            if (initialDataSourceType === 'SQL' && testResultJsonData && testResultJsonData !== '[]') {
+                try {
+                    var existingData = JSON.parse(testResultJsonData);
+                    if (existingData && existingData.length > 0) {
+                        var resultHtml = '<div class="alert alert-info">Current Data:</div>';
+                        resultHtml += '<div class="table-responsive"><table class="table table-bordered table-striped"><thead><tr>';
+
+                        // Create table headers
+                        for (var key in existingData[0]) {
+                            resultHtml += '<th>' + key + '</th>';
+                        }
+                        resultHtml += '</tr></thead><tbody>';
+
+                        // Create table rows
+                        existingData.forEach(function (row) {
+                            resultHtml += '<tr>';
+                            for (var key in row) {
+                                resultHtml += '<td>' + (row[key] !== null ? row[key] : 'NULL') + '</td>';
+                            }
+                            resultHtml += '</tr>';
+                        });
+                        resultHtml += '</tbody></table></div>';
+
+                        $('#testResult').html(resultHtml);
+                    }
+                } catch (e) {
+                    console.error("Error parsing existing JSON data:", e);
+                }
+            }
+        });
+    </script>
+}

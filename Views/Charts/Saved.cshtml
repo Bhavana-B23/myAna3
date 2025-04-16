@@ -1,0 +1,38 @@
+﻿@model IEnumerable<DataVizNavigator1.Models.Chart>
+
+
+@{
+    ViewData["Title"] = "Saved Charts";
+}
+
+<h1>List of Saved Charts</h1>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Chart Name</th>
+            <th>Dataset Name</th>
+            <th>Chart Type</th>
+            <th>Created On</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Mapping.Name</td>
+                <td>@item.ChartType</td>
+                <td>@item.CreatedOn.ToString("MM/dd/yyyy")</td>
+                <td>
+                    <a asp-action="View" asp-route-id="@item.Id" class="btn btn-info btn-sm">View</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div>
+    <a asp-action="Dashboard" class="btn btn-primary">Create New Chart</a>
+</div>

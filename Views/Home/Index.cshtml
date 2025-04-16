@@ -1,0 +1,35 @@
+﻿@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome to DataVizNavigator</h1>
+    <p>A tool for easily mapping data and creating visualizations.</p>
+
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Data Mappings</h5>
+                </div>
+                <div class="card-body">
+                    <p>Create and manage your data mappings.</p>
+                    <a asp-controller="Mappings" asp-action="Create" class="btn btn-primary">Create Mapping</a>
+                    <a asp-controller="Mappings" asp-action="Index" class="btn btn-secondary">View Mappings</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Charts</h5>
+                </div>
+                <div class="card-body">
+                    <p>Create and view data visualizations.</p>
+                    <a asp-controller="Charts" asp-action="Dashboard" class="btn btn-primary">Chart Dashboard</a>
+                    <a asp-controller="Charts" asp-action="Saved" class="btn btn-secondary">Saved Charts</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

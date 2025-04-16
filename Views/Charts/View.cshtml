@@ -1,0 +1,181 @@
+﻿@model DataVizNavigator1.Models.Chart
+@{
+    ViewData["Title"] = "View Chart";
+}
+
+<h1>@Model.Name</h1>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Chart Visualization</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chartCanvas" style="min-height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Chart Details</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Dataset:</dt>
+                    <dd class="col-sm-8">@Model.Mapping?.Name</dd>
+                    <dt class="col-sm-4">Chart Type:</dt>
+                    <dd class="col-sm-8">@Model.ChartType</dd>
+                    <dt class="col-sm-4">X-Axis Column:</dt>
+                    <dd class="col-sm-8">@Model.XAxisColumn</dd>
+                    <dt class="col-sm-4">Y-Axis Column:</dt>
+                    <dd class="col-sm-8">@Model.YAxisColumn</dd>
+                    <dt class="col-sm-4">Created On:</dt>
+                    <dd class="col-sm-8">@Model.CreatedOn.ToString("MM/dd/yyyy")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3">
+    <a asp-action="Saved" class="btn btn-secondary">Back to List</a>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            try {
+                // Get the chart data directly
+                const rawChartData = @Html.Raw(Model.ChartData);
+                console.log("Raw Chart Data:", rawChartData);
+
+                // Apply colors and render
+                renderChartWithColors(rawChartData, '@Model.ChartType');
+            } catch (e) {
+                console.error("Error initializing chart:", e);
+                alert("Error loading chart: " + e.message);
+            }
+        });
+
+        function renderChartWithColors(chartData, chartType) {
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
+
+            try {
+                // Parse data if it's a string
+                const data = typeof chartData === 'string' ? JSON.parse(chartData) : chartData;
+                console.log("Parsed data:", data);
+
+                // Define vibrant colors
+                const colors = [
+                    'rgba(255, 99, 132, 0.7)',   // Red
+                    'rgba(54, 162, 235, 0.7)',   // Blue
+                    'rgba(255, 206, 86, 0.7)',   // Yellow
+                    'rgba(75, 192, 192, 0.7)',   // Green
+                    'rgba(153, 102, 255, 0.7)',  // Purple
+                    'rgba(255, 159, 64, 0.7)',   // Orange
+                    'rgba(199, 199, 199, 0.7)',  // Gray
+                    'rgba(83, 102, 255, 0.7)',   // Indigo
+                    'rgba(255, 99, 255, 0.7)',   // Pink
+                    'rgba(99, 255, 132, 0.7)'    // Light Green
+                ];
+
+                const borderColors = [
+                    'rgb(255, 99, 132)',
+                    'rgb(54, 162, 235)',
+                    'rgb(255, 206, 86)',
+                    'rgb(75, 192, 192)',
+                    'rgb(153, 102, 255)',
+                    'rgb(255, 159, 64)',
+                    'rgb(199, 199, 199)',
+                    'rgb(83, 102, 255)',
+                    'rgb(255, 99, 255)',
+                    'rgb(99, 255, 132)'
+                ];
+
+                // Apply different colors per each data point in a dataset
+                if (data.datasets && data.datasets.length > 0) {
+                    // Special handling for bar charts - different color for each bar
+                    if (chartType === 'bar') {
+                        data.datasets.forEach(dataset => {
+                            // Create arrays of colors for each data point
+                            const dataLength = dataset.data.length;
+                            const backgroundColorArray = [];
+                            const borderColorArray = [];
+
+                            // Assign colors to each data point
+                            for (let i = 0; i < dataLength; i++) {
+                                const colorIndex = i % colors.length;
+                                backgroundColorArray.push(colors[colorIndex]);
+                                borderColorArray.push(borderColors[colorIndex]);
+                            }
+
+                            // Apply the color arrays to the dataset
+                            dataset.backgroundColor = backgroundColorArray;
+                            dataset.borderColor = borderColorArray;
+                            dataset.borderWidth = 1;
+                        });
+                    }
+                    // Handle pie/doughnut charts
+                    else if (chartType === 'pie' || chartType === 'doughnut') {
+                        data.datasets.forEach(dataset => {
+                            dataset.backgroundColor = colors.slice(0, dataset.data.length);
+                            dataset.borderColor = 'white';
+                            dataset.borderWidth = 1;
+                        });
+                    }
+                    // Handle other chart types (line, scatter, etc.)
+                    else {
+                        data.datasets.forEach((dataset, index) => {
+                            const colorIndex = index % colors.length;
+                            dataset.backgroundColor = colors[colorIndex];
+                            dataset.borderColor = borderColors[colorIndex];
+                            dataset.borderWidth = 1;
+
+                            // Extra styling for line charts
+                            if (chartType === 'line') {
+                                dataset.fill = false;
+                                dataset.tension = 0.4;
+                                dataset.pointBackgroundColor = borderColors[colorIndex];
+                            }
+                        });
+                    }
+                }
+
+                console.log("Modified data with colors:", data);
+
+                // Create and render the chart
+                const chart = new Chart(ctx, {
+                    type: chartType,
+                    data: data,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                enabled: true
+                            }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Error rendering chart:", e);
+                console.log("Problematic chart data:", chartData);
+                alert("Error rendering chart. See console for details.");
+            }
+        }
+    </script>
+}

@@ -1,0 +1,154 @@
+﻿@model DataVizNavigator1.Models.Mapping
+
+@{
+    ViewData["Title"] = "Mapping Details";
+}
+
+<h1>Mapping Details</h1>
+
+<div>
+    <h4>@Model.Name</h4>
+    <hr />
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Name)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Name)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Description)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Description)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.DataSourceType)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.DataSourceType)
+        </dd>
+
+        <dt class="col-sm-2">
+            Created On
+        </dt>
+        <dd class="col-sm-10">
+            @Model.CreatedOn.ToString("yyyy-MM-dd HH:mm:ss")
+        </dd>
+
+        @if (Model.DataSourceType == "SQL")
+        {
+            <dt class="col-sm-2">
+                @Html.DisplayNameFor(model => model.ConnectionString)
+            </dt>
+            <dd class="col-sm-10">
+                <!-- Mask connection string for security -->
+                <span class="text-muted">[Protected]</span>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="showConnectionString">
+                    Show
+                </button>
+                <span id="connectionStringValue" style="display:none;">@Model.ConnectionString</span>
+            </dd>
+
+            <dt class="col-sm-2">
+                @Html.DisplayNameFor(model => model.SqlQuery)
+            </dt>
+            <dd class="col-sm-10">
+                <pre class="bg-light p-2">@Model.SqlQuery</pre>
+            </dd>
+        }
+    </dl>
+
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0">Data Preview</h5>
+        </div>
+        <div class="card-body">
+            <div id="dataPreview" class="table-responsive">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <span class="ms-2">Loading data preview...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4">
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Edit</a>
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger">Delete</a>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Button to show/hide connection string
+            $('#showConnectionString').click(function() {
+                var connStringElement = $('#connectionStringValue');
+                var btnText = $(this).text();
+
+                if (btnText === 'Show') {
+                    connStringElement.show();
+                    $(this).text('Hide');
+                } else {
+                    connStringElement.hide();
+                    $(this).text('Show');
+                }
+            });
+
+            // Load data preview
+            loadDataPreview();
+
+            function loadDataPreview() {
+                try {
+                    var jsonData = @Html.Raw(Model.TableData);
+
+                    // Check if data is available
+                    if (jsonData && jsonData.length > 0) {
+                        var resultHtml = '<table class="table table-bordered table-striped"><thead><tr>';
+
+                        // Create table headers
+                        for (var key in jsonData[0]) {
+                            resultHtml += '<th>' + key + '</th>';
+                        }
+                        resultHtml += '</tr></thead><tbody>';
+
+                        // Create table rows (limit to first 100 rows to prevent browser overload)
+                        var displayRows = jsonData.slice(0, 100);
+                        displayRows.forEach(function(row) {
+                            resultHtml += '<tr>';
+                            for (var key in row) {
+                                resultHtml += '<td>' + (row[key] !== null ? row[key] : 'NULL') + '</td>';
+                            }
+                            resultHtml += '</tr>';
+                        });
+                        resultHtml += '</tbody></table>';
+
+                        if (jsonData.length > 100) {
+                            resultHtml += '<div class="alert alert-info">Showing first 100 rows of ' + jsonData.length + ' total rows.</div>';
+                        }
+
+                        $('#dataPreview').html(resultHtml);
+                    } else {
+                        $('#dataPreview').html('<div class="alert alert-warning">No data available.</div>');
+                    }
+                } catch (e) {
+                    $('#dataPreview').html('<div class="alert alert-danger">Error loading data preview: ' + e.message + '</div>');
+                    console.error("Error loading data preview:", e);
+                }
+            }
+        });
+    </script>
+}

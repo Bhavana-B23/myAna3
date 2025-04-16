@@ -1,0 +1,215 @@
+﻿@model DataVizNavigator1.Models.MappingViewModel
+
+@{
+    ViewData["Title"] = "Create Mapping";
+}
+
+<h1>Create a New Mapping</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Name" class="control-label"></label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Description" class="control-label"></label>
+                <textarea asp-for="Description" class="form-control"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="DataSourceType" class="control-label"></label>
+                <select asp-for="DataSourceType" class="form-control" id="dataSourceType">
+                    <option value="">-- Select Data Source Type --</option>
+                    <option value="SQL">SQL Database</option>
+                    <option value="JSON">JSON Data</option>
+                </select>
+                <span asp-validation-for="DataSourceType" class="text-danger"></span>
+            </div>
+
+            <div id="sqlSection" style="display:none;">
+                <div class="form-group mb-3">
+                    <label asp-for="ConnectionString" class="control-label"></label>
+                    <input asp-for="ConnectionString" class="form-control" id="connectionString" />
+                    <span class="text-muted">Example: Server=localhost;Database=YourDB;Trusted_Connection=True;</span>
+                    <span asp-validation-for="ConnectionString" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="SqlQuery" class="control-label"></label>
+                    <textarea asp-for="SqlQuery" class="form-control" rows="5" id="sqlQuery"></textarea>
+                    <span class="text-muted">Example: SELECT * FROM YourTable WHERE Column = 'Value'</span>
+                    <span asp-validation-for="SqlQuery" class="text-danger"></span>
+                </div>
+
+                <!-- Hidden TableData field -->
+                <input type="hidden" asp-for="TableData" value="[]" id="hiddenTableData" />
+
+                <!-- Test and Save Result Buttons -->
+                <button type="button" class="btn btn-warning mb-3" id="testResultBtn">Test SQL Query</button>
+                <button type="button" class="btn btn-info mb-3 ml-2" id="saveTestDataBtn" style="display:none;">Save Test Data</button>
+
+                <div id="testResult" style="margin-top: 10px;"></div>
+                <div id="saveStatus" style="margin-top: 10px;"></div>
+            </div>
+
+            <div id="jsonSection" style="display:none;">
+                <div class="form-group mb-3">
+                    <label asp-for="TableData" class="control-label"></label>
+                    <textarea asp-for="TableData" class="form-control" rows="10" id="jsonTableData"></textarea>
+                    <span class="text-muted">Provide JSON data in array format: [{"key": "value"}, {"key": "value"}]</span>
+                    <span asp-validation-for="TableData" class="text-danger"></span>
+                </div>
+
+                <!-- Add hidden fields with empty values -->
+                <input type="hidden" asp-for="ConnectionString" value="" />
+                <input type="hidden" asp-for="SqlQuery" value="" />
+            </div>
+
+            <div class="form-group mt-4 mb-3">
+                <input type="submit" value="Save Mapping" class="btn btn-primary" id="saveButton" />
+                <a asp-action="Index" class="btn btn-secondary ml-2">Back to List</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function () {
+            // Store the test result JSON data
+            let testResultJsonData = '';
+
+            // Show/hide sections based on initial data source type value
+            var initialDataSourceType = $('#dataSourceType').val();
+            toggleSections(initialDataSourceType);
+
+            // Show/hide sections based on data source type change
+            $('#dataSourceType').change(function () {
+                var selectedValue = $(this).val();
+                toggleSections(selectedValue);
+            });
+
+            function toggleSections(selectedValue) {
+                if (selectedValue === 'SQL') {
+                    $('#sqlSection').show();
+                    $('#jsonSection').hide();
+                    // Reset JSON data when switching to SQL
+                    $('#jsonTableData').val('[]');
+                } else if (selectedValue === 'JSON') {
+                    $('#sqlSection').hide();
+                    $('#jsonSection').show();
+                    // Reset SQL fields when switching to JSON
+                    $('#connectionString').val('');
+                    $('#sqlQuery').val('');
+                } else {
+                    $('#sqlSection').hide();
+                    $('#jsonSection').hide();
+                }
+            }
+
+            // Handle Test Result button click
+            $('#testResultBtn').click(function () {
+                var connectionString = $('#connectionString').val();
+                var sqlQuery = $('#sqlQuery').val();
+
+                if (!connectionString || !sqlQuery) {
+                    $('#testResult').html('<div class="alert alert-danger">Connection string and SQL query are both required.</div>');
+                    $('#saveTestDataBtn').hide();
+                    return;
+                }
+
+                $('#testResult').html('<div class="alert alert-info">Testing query... Please wait.</div>');
+                $('#saveTestDataBtn').hide();
+
+                // Make an AJAX request to the TestResult action
+                $.ajax({
+                    url: '@Url.Action("TestResult", "Mappings")',
+                    type: 'POST',
+                    data: {
+                        connectionString: connectionString,
+                        sqlQuery: sqlQuery
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            if (response.data && response.data.length > 0) {
+                                // Store the JSON data for later use
+                                testResultJsonData = response.jsonData;
+
+                                // Update hidden field
+                                $('#hiddenTableData').val(testResultJsonData);
+
+                                // Show save button
+                                $('#saveTestDataBtn').show();
+
+                                var resultHtml = '<div class="alert alert-success">Query executed successfully! Results:</div>';
+                                resultHtml += '<div class="table-responsive"><table class="table table-bordered table-striped"><thead><tr>';
+
+                                // Create table headers
+                                for (var key in response.data[0]) {
+                                    resultHtml += '<th>' + key + '</th>';
+                                }
+                                resultHtml += '</tr></thead><tbody>';
+
+                                // Create table rows
+                                response.data.forEach(function (row) {
+                                    resultHtml += '<tr>';
+                                    for (var key in row) {
+                                        resultHtml += '<td>' + (row[key] !== null ? row[key] : 'NULL') + '</td>';
+                                    }
+                                    resultHtml += '</tr>';
+                                });
+                                resultHtml += '</tbody></table></div>';
+
+                                $('#testResult').html(resultHtml);
+                            } else {
+                                $('#testResult').html('<div class="alert alert-warning">Query executed successfully but returned no results.</div>');
+                                $('#saveTestDataBtn').hide();
+                            }
+                        } else {
+                            $('#testResult').html('<div class="alert alert-danger">Error: ' + response.message + '</div>');
+                            $('#saveTestDataBtn').hide();
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        $('#testResult').html('<div class="alert alert-danger">An error occurred while testing the query: ' + error + '</div>');
+                        $('#saveTestDataBtn').hide();
+                    }
+                });
+            });
+
+            // Add form submission handler to ensure TableData is set for SQL sources
+            $('form').submit(function(e) {
+                var dataSourceType = $('#dataSourceType').val();
+
+                if (dataSourceType === 'SQL') {
+                    // If we have test results, use them
+                    if (testResultJsonData) {
+                        $('#hiddenTableData').val(testResultJsonData);
+                    } else {
+                        // Otherwise set an empty array
+                        $('#hiddenTableData').val('[]');
+                    }
+                } else if (dataSourceType === 'JSON') {
+                    // Clear SQL fields for JSON data source
+                    $('#connectionString').val('');
+                    $('#sqlQuery').val('');
+                }
+
+                return true; // Continue with form submission
+            });
+        });
+    </script>
+}

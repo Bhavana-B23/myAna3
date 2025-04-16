@@ -1,0 +1,44 @@
+﻿@model IEnumerable<DataVizNavigator1.Models.Mapping>
+
+@{
+    ViewData["Title"] = "View Mappings";
+}
+
+<h1>List of Saved Mappings</h1>
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">Create New</a>
+</p>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["SuccessMessage"]
+    </div>
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Dataset Name</th>
+            <th>Description</th>
+            <th>Data Source Type</th>
+            <th>Created On</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Description</td>
+                <td>@item.DataSourceType</td>
+                <td>@item.CreatedOn.ToString("MM/dd/yyyy")</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info btn-sm">Details</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
