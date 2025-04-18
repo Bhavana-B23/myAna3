@@ -399,6 +399,7 @@ namespace DataVizNavigator1.Controllers
                 mapping.TableData = jsonData;
                 await _context.SaveChangesAsync();
 
+
                 return Json(new { success = true, message = "Table data saved successfully" });
             }
             catch (Exception ex)
