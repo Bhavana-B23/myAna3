@@ -1,0 +1,193 @@
+﻿@model DataVizNavigator1.Models.ChartPage
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>@Model.Name</h1>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">
+                <i class="bi bi-pencil"></i> Edit Page
+            </a>
+            <a asp-action="Index" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.Description))
+    {
+        <div class="alert alert-info mb-4">
+            <p class="mb-0">@Model.Description</p>
+        </div>
+    }
+
+    @if (!Model.PageChartMappings.Any())
+    {
+        <div class="alert alert-warning">
+            <h4>No Charts</h4>
+            <p>No charts have been added to this page. Edit the page to add charts.</p>
+        </div>
+    }
+    else
+    {
+        <div class="row" id="chartsContainer">
+            @foreach (var mapping in Model.PageChartMappings.OrderBy(m => m.DisplayOrder))
+            {
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">@mapping.Chart.Name</h5>
+                            <span class="badge bg-primary">@mapping.Chart.ChartType</span>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="chart-@mapping.ChartId" style="min-height: 300px;"></canvas>
+                        </div>
+                        <div class="card-footer">
+                            <div class="small text-muted">
+                                <div>Dataset: @(mapping.Chart.Mapping?.Name ?? "N/A")</div>
+                                <div>X-Axis: @mapping.Chart.XAxisColumn | Y-Axis: @mapping.Chart.YAxisColumn</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize charts
+        @foreach (var mapping in Model.PageChartMappings.OrderBy(m => m.DisplayOrder))
+        {
+            <text>
+                    try {
+                        // Get chart data
+                        const chartData_@(mapping.ChartId) = @Html.Raw(mapping.Chart.ChartData);
+
+                        // Get chart context
+                        const ctx_@(mapping.ChartId) = document.getElementById('chart-@mapping.ChartId').getContext('2d');
+
+                        // Parse data if it's a string
+                        const data_@(mapping.ChartId) = typeof chartData_@(mapping.ChartId) === 'string'
+                            ? JSON.parse(chartData_@(mapping.ChartId))
+                            : chartData_@(mapping.ChartId);
+
+                        // Define vibrant colors
+                        const colors = [
+                            'rgba(255, 99, 132, 0.7)',   // Red
+                            'rgba(54, 162, 235, 0.7)',   // Blue
+                            'rgba(255, 206, 86, 0.7)',   // Yellow
+                            'rgba(75, 192, 192, 0.7)',   // Green
+                            'rgba(153, 102, 255, 0.7)',  // Purple
+                            'rgba(255, 159, 64, 0.7)',   // Orange
+                            'rgba(199, 199, 199, 0.7)',  // Gray
+                            'rgba(83, 102, 255, 0.7)',   // Indigo
+                            'rgba(255, 99, 255, 0.7)',   // Pink
+                            'rgba(99, 255, 132, 0.7)'    // Light Green
+                        ];
+
+                        const borderColors = [
+                            'rgb(255, 99, 132)',
+                            'rgb(54, 162, 235)',
+                            'rgb(255, 206, 86)',
+                            'rgb(75, 192, 192)',
+                            'rgb(153, 102, 255)',
+                            'rgb(255, 159, 64)',
+                            'rgb(199, 199, 199)',
+                            'rgb(83, 102, 255)',
+                            'rgb(255, 99, 255)',
+                            'rgb(99, 255, 132)'
+                        ];
+
+                        // Apply colors to datasets
+                        if (data_@(mapping.ChartId).datasets && data_@(mapping.ChartId).datasets.length > 0) {
+                            // Special handling for bar charts - different color for each bar
+                            if ('@mapping.Chart.ChartType' === 'bar') {
+                                data_@(mapping.ChartId).datasets.forEach(dataset => {
+                                    // Create arrays of colors for each data point
+                                    const dataLength = dataset.data.length;
+                                    const backgroundColorArray = [];
+                                    const borderColorArray = [];
+
+                                    // Assign colors to each data point
+                                    for (let i = 0; i < dataLength; i++) {
+                                        const colorIndex = i % colors.length;
+                                        backgroundColorArray.push(colors[colorIndex]);
+                                        borderColorArray.push(borderColors[colorIndex]);
+                                    }
+
+                                    // Apply the color arrays to the dataset
+                                    dataset.backgroundColor = backgroundColorArray;
+                                    dataset.borderColor = borderColorArray;
+                                    dataset.borderWidth = 1;
+                                });
+                            }
+                            // Handle pie/doughnut charts
+                            else if ('@mapping.Chart.ChartType' === 'pie' || '@mapping.Chart.ChartType' === 'doughnut') {
+                                data_@(mapping.ChartId).datasets.forEach(dataset => {
+                                    dataset.backgroundColor = colors.slice(0, dataset.data.length);
+                                    dataset.borderColor = 'white';
+                                    dataset.borderWidth = 1;
+                                });
+                            }
+                            // Handle other chart types (line, scatter, etc.)
+                            else {
+                                data_@(mapping.ChartId).datasets.forEach((dataset, index) => {
+                                    const colorIndex = index % colors.length;
+                                    dataset.backgroundColor = colors[colorIndex];
+                                    dataset.borderColor = borderColors[colorIndex];
+                                    dataset.borderWidth = 1;
+
+                                    // Extra styling for line charts
+                                    if ('@mapping.Chart.ChartType' === 'line') {
+                                        dataset.fill = false;
+                                        dataset.tension = 0.4;
+                                        dataset.pointBackgroundColor = borderColors[colorIndex];
+                                    }
+                                });
+                            }
+                        }
+
+                        // Create chart
+                        const chart_@(mapping.ChartId) = new Chart(ctx_@(mapping.ChartId), {
+                            type: '@mapping.Chart.ChartType',
+                            data: data_@(mapping.ChartId),
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true
+                                    }
+                                },
+                                plugins: {
+                                    legend: {
+                                        display: true,
+                                        position: 'top'
+                                    },
+                                    tooltip: {
+                                        enabled: true
+                                    }
+                                }
+                            }
+                        });
+                    } catch (e) {
+                        console.error("Error rendering chart @mapping.Chart.Name:", e);
+                        $('#chart-@mapping.ChartId').parent().append('<div class="alert alert-danger">Error loading chart</div>');
+                    }
+            </text>
+        }
+
+            // Resize handler for responsive charts
+            $(window).on('resize', function() {
+                $('.chart-container').each(function() {
+                    $(this).css('height', $(this).width() * 0.6);
+                });
+            }).resize();
+        });
+    </script>
+}

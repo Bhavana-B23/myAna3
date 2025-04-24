@@ -1,0 +1,44 @@
+﻿@model DataVizNavigator1.Models.ChartPage
+@{
+    ViewData["Title"] = "Delete Chart Page";
+}
+
+<div class="container">
+    <h1>Delete Chart Page</h1>
+
+    <div class="alert alert-danger">
+        <h4>Are you sure you want to delete this chart page?</h4>
+        <p>This action cannot be undone. All chart associations will be removed.</p>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Page Information</h5>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Name:</dt>
+                <dd class="col-sm-9">@Model.Name</dd>
+
+                <dt class="col-sm-3">Description:</dt>
+                <dd class="col-sm-9">@Model.Description</dd>
+
+                <dt class="col-sm-3">Created On:</dt>
+                <dd class="col-sm-9">@Model.CreatedOn.ToString("MM/dd/yyyy")</dd>
+
+                <dt class="col-sm-3">Total Charts:</dt>
+                <dd class="col-sm-9">@Model.PageChartMappings.Count()</dd>
+            </dl>
+        </div>
+    </div>
+
+    <form asp-action="Delete">
+        <input type="hidden" asp-for="Id" />
+        <button type="submit" class="btn btn-danger">
+            <i class="bi bi-trash"></i> Delete
+        </button>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Back to List
+        </a>
+    </form>
+</div>

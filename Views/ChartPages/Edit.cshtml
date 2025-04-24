@@ -1,0 +1,293 @@
+﻿@model DataVizNavigator1.Models.ChartPageViewModel
+@{
+    ViewData["Title"] = "Edit Chart Page";
+}
+
+<div class="container">
+    <h1>Edit Chart Page</h1>
+
+    <div class="row">
+        <div class="col-md-12">
+            <form asp-action="Edit">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="CreatedOn" />
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Page Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Name" class="control-label"></label>
+                                    <input asp-for="Name" class="form-control" placeholder="Enter page name" />
+                                    <span asp-validation-for="Name" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Description" class="control-label"></label>
+                                    <textarea asp-for="Description" class="form-control" rows="2" placeholder="Enter page description"></textarea>
+                                    <span asp-validation-for="Description" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-4">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5>Select Charts</h5>
+                        <button type="button" id="addChartBtn" class="btn btn-sm btn-primary">
+                            <i class="bi bi-plus-circle"></i> Add Chart
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="chartSelectionsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Chart</th>
+                                        <th>Type</th>
+                                        <th>Display Order</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="chartSelectionsBody">
+                                    @for (int i = 0; i < Model.ChartSelections.Count; i++)
+                                    {
+                                        var chart = Model.ChartSelections[i];
+                                        <tr>
+                                            <td>
+                                                @chart.ChartName
+                                                <input type="hidden" name="ChartSelections[@i].ChartId" value="@chart.ChartId">
+                                                <input type="hidden" name="ChartSelections[@i].ChartName" value="@chart.ChartName">
+                                            </td>
+                                            <td>
+                                                @chart.ChartType
+                                                <input type="hidden" name="ChartSelections[@i].ChartType" value="@chart.ChartType">
+                                            </td>
+                                            <td>
+                                                <span class="order-number">@chart.DisplayOrder</span>
+                                                <input type="hidden" name="ChartSelections[@i].DisplayOrder" value="@chart.DisplayOrder" class="order-input">
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm" role="group">
+                                                    <button type="button" class="btn btn-outline-primary move-up-btn" title="Move Up">
+                                                        <i class="bi bi-arrow-up"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-primary move-down-btn" title="Move Down">
+                                                        <i class="bi bi-arrow-down"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-danger delete-chart-btn" title="Remove">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div id="noChartsMessage" class="alert alert-info">
+                            No charts selected. Click "Add Chart" to select charts for this page.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group text-center">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save"></i> Save Changes
+                    </button>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to List
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Chart Selection Modal -->
+<div class="modal fade" id="chartSelectionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Select Chart</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="availableChartsTable">
+                        <thead>
+                            <tr>
+                                <th>Chart Name</th>
+                                <th>Dataset</th>
+                                <th>Type</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var chart in Model.AvailableCharts)
+                            {
+                                <tr>
+                                    <td>@chart.Name</td>
+                                    <td>@(chart.Mapping?.Name ?? "N/A")</td>
+                                    <td>@chart.ChartType</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-success select-chart-btn"
+                                                data-chart-id="@chart.Id"
+                                                data-chart-name="@chart.Name"
+                                                data-chart-type="@chart.ChartType">
+                                            <i class="bi bi-plus-circle"></i> Select
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (!Model.AvailableCharts.Any())
+                {
+                    <div class="alert alert-warning">
+                        No charts available. Please create charts first.
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function() {
+            // Initialize variables
+            let nextOrder = @(Model.ChartSelections.Count > 0 ? Model.ChartSelections.Max(cs => cs.DisplayOrder) + 1 : 1);
+            updateNoChartsMessage();
+
+            // Add chart button click handler
+            $('#addChartBtn').click(function() {
+                $('#chartSelectionModal').modal('show');
+            });
+
+            // Select chart click handler
+            $('.select-chart-btn').click(function() {
+                const chartId = $(this).data('chart-id');
+                const chartName = $(this).data('chart-name');
+                const chartType = $(this).data('chart-type');
+
+                addChartToSelection(chartId, chartName, chartType, nextOrder++);
+                $('#chartSelectionModal').modal('hide');
+            });
+
+            // Delete chart from selection handler (using event delegation)
+            $('#chartSelectionsBody').on('click', '.delete-chart-btn', function() {
+                $(this).closest('tr').remove();
+                updateNoChartsMessage();
+                reorderCharts();
+            });
+
+            // Move chart up in order
+            $('#chartSelectionsBody').on('click', '.move-up-btn', function() {
+                const currentRow = $(this).closest('tr');
+                const prevRow = currentRow.prev();
+
+                if (prevRow.length) {
+                    currentRow.insertBefore(prevRow);
+                    reorderCharts();
+                }
+            });
+
+            // Move chart down in order
+            $('#chartSelectionsBody').on('click', '.move-down-btn', function() {
+                const currentRow = $(this).closest('tr');
+                const nextRow = currentRow.next();
+
+                if (nextRow.length) {
+                    currentRow.insertAfter(nextRow);
+                    reorderCharts();
+                }
+            });
+
+            // Add chart to selection function
+            function addChartToSelection(chartId, chartName, chartType, order) {
+                // Check if chart is already selected
+                if ($(`#chartSelectionsBody input[value="${chartId}"]`).length > 0) {
+                    alert('This chart is already selected.');
+                    return;
+                }
+
+                const newRow = `
+                    <tr>
+                        <td>
+                            ${chartName}
+                            <input type="hidden" name="ChartSelections[${order-1}].ChartId" value="${chartId}">
+                            <input type="hidden" name="ChartSelections[${order-1}].ChartName" value="${chartName}">
+                        </td>
+                        <td>
+                            ${chartType}
+                            <input type="hidden" name="ChartSelections[${order-1}].ChartType" value="${chartType}">
+                        </td>
+                        <td>
+                            <span class="order-number">${order}</span>
+                            <input type="hidden" name="ChartSelections[${order-1}].DisplayOrder" value="${order}" class="order-input">
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary move-up-btn" title="Move Up">
+                                    <i class="bi bi-arrow-up"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-primary move-down-btn" title="Move Down">
+                                    <i class="bi bi-arrow-down"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger delete-chart-btn" title="Remove">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+
+                $('#chartSelectionsBody').append(newRow);
+                updateNoChartsMessage();
+            }
+
+            // Update hidden inputs for order when reordering
+            function reorderCharts() {
+                $('#chartSelectionsBody tr').each(function(index) {
+                    const newOrder = index + 1;
+                    $(this).find('.order-number').text(newOrder);
+                    $(this).find('.order-input').val(newOrder);
+
+                    // Update the input names to maintain proper indexing
+                    $(this).find('input').each(function() {
+                        const name = $(this).attr('name');
+                        const newName = name.replace(/ChartSelections\[\d+\]/, `ChartSelections[${index}]`);
+                        $(this).attr('name', newName);
+                    });
+                });
+
+                // Update nextOrder
+                nextOrder = $('#chartSelectionsBody tr').length + 1;
+            }
+
+            // Show/hide no charts message
+            function updateNoChartsMessage() {
+                const hasCharts = $('#chartSelectionsBody tr').length > 0;
+                $('#noChartsMessage').toggle(!hasCharts);
+                $('#chartSelectionsTable').toggle(hasCharts);
+            }
+        });
+    </script>
+}

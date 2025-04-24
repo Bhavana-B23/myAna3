@@ -1,0 +1,55 @@
+﻿@model IEnumerable<DataVizNavigator1.Models.ChartPage>
+@{
+    ViewData["Title"] = "Chart Pages";
+}
+<div class="container">
+    <h1>Chart Pages</h1>
+    <p>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Create New Page
+        </a>
+    </p>
+    <div class="row">
+        @foreach (var item in Model)
+        {
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">@item.Name</h5>
+                        <span class="badge bg-primary">
+                            @item.PageChartMappings.Count() Chart@(item.PageChartMappings.Count() != 1 ? "s" : "")
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">@item.Description</p>
+                        <p class="card-text">
+                            <small class="text-muted">Created: @item.CreatedOn.ToString("MM/dd/yyyy")</small>
+                        </p>
+                    </div>
+                    <div class="card-footer text-center">
+                        <div class="btn-group" role="group">
+                            <a asp-action="View" asp-route-id="@item.Id" class="btn btn-success">
+                                <i class="bi bi-graph-up"></i> View
+                            </a>
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-primary">
+                                <i class="bi bi-pencil"></i> Edit
+                            </a>
+                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-info">
+                                <i class="bi bi-info-circle"></i> Details
+                            </a>
+                            <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-danger">
+                                <i class="bi bi-trash"></i> Delete
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+            No chart pages have been created yet. Click "Create New Page" to get started.
+        </div>
+    }
+</div>
