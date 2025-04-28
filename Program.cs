@@ -15,6 +15,14 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // ✅ Register custom service
 builder.Services.AddScoped<IDataProcessingService, DataProcessingService>();
 
+// ✅ Add session services
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -29,6 +37,9 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+// ✅ Use session middleware
+app.UseSession();
+
 // ✅ Use your custom error-handling middleware
 app.UseErrorHandling();
 
@@ -36,6 +47,6 @@ app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Account}/{action=Login}/{id?}");
 
 app.Run();

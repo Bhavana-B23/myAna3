@@ -4,9 +4,6 @@ using DataVizNavigator1.Models;
 
 namespace DataVizNavigator1.Data
 {
-  
-
-
     public class ApplicationDbContext : DbContext
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
@@ -16,9 +13,10 @@ namespace DataVizNavigator1.Data
 
         public DbSet<Mapping> Mappings { get; set; }
         public DbSet<Chart> Charts { get; set; }
-        // Add these lines to your ApplicationDbContext.cs file
         public DbSet<ChartPage> ChartPages { get; set; }
         public DbSet<PageChartMapping> PageChartMappings { get; set; }
+        // Add the User DbSet
+        public DbSet<User> Users { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -37,6 +35,26 @@ namespace DataVizNavigator1.Data
                 .HasOne(pcm => pcm.Chart)
                 .WithMany()
                 .HasForeignKey(pcm => pcm.ChartId);
+
+            // Add seed data for Users
+            modelBuilder.Entity<User>().HasData(
+                new User
+                {
+                    Id = 1,
+                    FirstName = "Bhavana",
+                    LastName = "Burra",
+                    Username = "Bhavana",
+                    Password = "Myana@23"
+                },
+                new User
+                {
+                    Id = 2,
+                    FirstName = "Ishika",
+                    LastName = "Varma",
+                    Username = "Ishika",
+                    Password = "DataViz@23"
+                }
+            );
         }
     }
 }
